@@ -22,7 +22,7 @@ function varargout = tom_wordParsing(varargin)
 
 % Edit the above text to modify the response to help tom_wordParsing
 
-% Last Modified by GUIDE v2.5 16-Mar-2016 23:31:20
+% Last Modified by GUIDE v2.5 29-Mar-2016 18:24:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,6 +54,12 @@ function tom_wordParsing_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for tom_wordParsing
 handles.output = hObject;
+
+handles.playspeed   = 1;
+handles.thrsh       = 0.01;
+handles.polyorder   = 3;
+handles.frame       = 41;
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -88,10 +94,10 @@ handles.fs = fs;
 [~, f, t, p] = spectrogram(y(fs*45:fs*55),100,90,512,fs);
 surf(handles.axesAudio, t(:), f(:), 10*log10(abs(p)), 'EdgeColor', 'none')
 view(handles.axesAudio, [0,90])
-ylim(handles.axesAudio, [0 10000])
+ylim(handles.axesAudio, [0 fs/2])
 xlim(handles.axesAudio, [0, t(end)])
 
-set(handles.textLoadWav, 'String', (['Loaded ',filename(1:end-4)]), 'foreground', 'Green')
+set(handles.textLoadWav, 'String', (['Loaded ',filename(1:end-4)]), 'foreground', 'Red')
 
 guidata(hObject, handles)
 
@@ -114,10 +120,17 @@ else
     sheetnum = str2double(handles.sheetnum);
     [num, txt, raw] = xlsread(handles.xlsfile, sheetnum);
     
-    text(:, 1:2) = txt(2:end, 11:12);
-    text(:, 3) = txt(2:end, 14);
-    text(:, 4) = txt(2:end, 13);
-    text(:, 5) = txt(2:end, 16);
+    % find columns to extract text        
+    try
+        text(:, 1) = txt(2:end, strcmpi(txt(1,:),'Trunk text'));
+        text(:, 2) = txt(2:end, strcmpi(txt(1,:),'Question 1'));
+        text(:, 3) = txt(2:end, strcmpi(txt(1,:),'Answer 1'));
+        text(:, 4) = txt(2:end, strcmpi(txt(1,:),'Question 2'));
+        text(:, 5) = txt(2:end, strcmpi(txt(1,:),'Answer 2'));
+    catch
+        warning('Error extracting text from worksheet, probably columns aren''t properly labelled')
+        rethrow(lasterror)
+    end
     
     for i = 1:length(text)
         textdum = strjoin(text(i,:), '  ');
@@ -267,7 +280,7 @@ function pushbuttonStrtEnd_Callback(hObject, eventdata, handles)
 
 handles.wordTimes=[];
 
-fs = handles.fs;
+% fs = handles.fs;
 if isfield(handles, 'audio_bp') == 1
     e = handles.audio_bp;
 else
@@ -293,6 +306,10 @@ hold(handles.axesAudio,'off')
 str = (['DONE! ' num2str(length(mins)) ' words found']);
 set(handles.textStrtEnd, 'String', str, 'foreground', 'Green')
 
+set(handles.uitableTimes, 'Data', handles.wordTimes);
+a = 1:length(handles.wordTimes); a = a';
+set(handles.listboxNumWords, 'String', {a});
+
 guidata(hObject, handles)
 
 
@@ -310,6 +327,10 @@ a = 1:length(wordTimes); a = a';
 
 set(handles.listboxNumWords, 'String', {a});
 set(handles.uitableTimes, 'Data', wordTimes);
+
+% update "predicted" words 
+handles.wordpred = wordPred;
+set(handles.uitableWords, 'Data', wordPred);  
 
 guidata(hObject, handles)
 
@@ -341,47 +362,51 @@ end
 function [strt, ct] = findstrtend(signal, handles)
 
 if isfield(handles,'thrsh') == 0
-    threshold = .01;
-else
-    threshold = handles.thrsh;
+    handles.thrsh = .01;
 end
 
-if isfield(handles,'order') == 0
-    order = 3;
-else
-    order = handles.order;
+if isfield(handles,'polyorder') == 0
+    handles.polyorder = 3;
 end
 
 if isfield(handles,'frame') == 0
-    frame = 41;
-else
-    frame = handles.frame;
+    handles.frame = 41;
 end
+guidata(gcbo, handles);
 
 fs = handles.fs;
-e = sgolayfilt(signal,order,frame);
+e = sgolayfilt(signal, handles.polyorder, handles.frame);
 
 eSq = e.*e;
 eSq = eSq/(max(abs(eSq)));
+% 
+% for i = 1:length(eSq)
+%     if eSq(i) > .1
+%         eSq(i) = .1;
+%     elseif eSq(i) < -.1
+%         eSq(i) = -.1;
+%     elseif abs(eSq(i)) < .02
+%         eSq(i) = 0;
+%     end
+% end
 
-for i = 1:length(eSq)
-    if eSq(i) > .1
-        eSq(i) = .1;
-    elseif eSq(i) < -.1
-        eSq(i) = -.1;
-    elseif abs(eSq(i)) < .02
-        eSq(i) = 0;
-    end
-end
+% eSq(eSq > 0.1)  = 0.1;
+% eSq(eSq < 0.02) = 0;
+
+eSq(eSq > 0.1)  = 0.1;
+eSq(eSq < 0.005) = 0;
 
 t=0:1/fs:(length(eSq)-1)/fs;
 S = ones(512/2,1);
 
-set(handles.textStrtEnd, 'String', 'Performing Convolution...', 'foreground', 'yellow'), pause(.5);
+set(handles.textStrtEnd, 'String', ...
+    'Performing Convolution...', 'foreground', 'red'), pause(.5);
 
 env = fastconv(abs(eSq),S);
 env = env/max(abs(env)) * .1;
-th = .1 * threshold;
+% trim envelope to the length of the signal
+env((length(signal)+1):end) = [];
+th = .1 * handles.thrsh;
 
 % counter variables
 s_index = 1;
@@ -402,12 +427,16 @@ while loc < length(env)
         strt(s_index)= I; % keep track of crossing location
         s_index = s_index + 1;
         pos_edge = 0; % start looking for negative crossings
-        loc = I + fs/10; % skip ahead samples to avoid noisy behavior
+%         loc = I + fs/10; % skip ahead 100 ms to avoid noisy behavior
+        loc = I + fs/100; % skip ahead 10 ms to avoid noisy behavior
         
     elseif pos_edge == 0 % looking for a negative threshold crossing
         
         G = (loc-1) + find(env(loc:end) < th , 1);
         if isempty(G)
+            if length(strt) > length(ct)
+                ct(c_index) = length(env)-1;
+            end              
             break
         end
         ct(c_index)= G;
@@ -415,9 +444,9 @@ while loc < length(env)
         pos_edge = 1;
         loc = G + fs/10;
         set(handles.textStrtEnd, 'String', (['Finding word...' num2str(c_index)]), 'foreground', 'blue'), pause(.01);
-    end
-    
+    end    
 end
+
 
 
 
@@ -489,12 +518,12 @@ else
 end
 handles.y = e;
 
-[strt, ct] = findstrtend(e, handles);
+[strt, ct] = findstrtend(handles.y, handles);
 
 handles.wordTimes(:,1) = strt;
 handles.wordTimes(:,2) = ct;
 
-plot(handles.axesAudio, 1:fs*20+1, e);
+plot(handles.axesAudio, 1:(length(e)), e);
 hold(handles.axesAudio,'on')
 mins = e(strt);
 maxs = e(ct);
@@ -506,7 +535,7 @@ a = 1:length(handles.wordTimes); a = a';
 set(handles.listboxNumWords, 'String', {a});
 set(handles.uitableTimes, 'Data', handles.wordTimes);
 
-set(handles.textStrtEnd, 'String', ('Testing Parmeters DONE!'), 'foreground', 'Green')
+set(handles.textStrtEnd, 'String', ('Testing Parameters DONE!'), 'foreground', 'black')
 
 guidata(hObject, handles)
 
@@ -600,20 +629,40 @@ else
     set(handles.editStart, 'String', num2str(handles.wordTimes(wordnum,1)));
     set(handles.editEnd, 'String', num2str(handles.wordTimes(wordnum,2)));
     handles.wordWindow = handles.wordTimes(wordnum,1)-(fs/5);
-
+    if handles.wordWindow < 0, handles.wordWindow = 1; end
     e = handles.audio(handles.wordWindow:(handles.wordTimes(wordnum,2)+(fs/5)));
+   
     handles.y = e;
-    handles.yword = handles.audio(handles.wordTimes(wordnum,1):handles.wordTimes(wordnum,2));
-
-    plot(handles.axesAudio, 1:length(e), e);
+    wordStart = handles.wordTimes(wordnum,1);
+    wordEnd   = handles.wordTimes(wordnum,2);
+    buffer    = fs/2;
+    handles.yword = handles.audio(wordStart:wordEnd);
+    
+    % Plot scatter of all words, this resets all word markers to circles
+    plot(handles.axesAudio, handles.audio)
     hold(handles.axesAudio,'on')
+    mins = handles.audio(handles.wordTimes(:,1));
+    maxs = handles.audio(handles.wordTimes(:,2));
+    scatter(handles.axesAudio, handles.wordTimes(:,1), mins, 'foreground', 'green')
+    scatter(handles.axesAudio, handles.wordTimes(:,2), maxs, 'foreground', 'red')
+
+    
+    xlim([wordStart-buffer wordEnd+buffer])
+%     plot(handles.axesAudio, 1:length(e), e);
     mins = handles.audio(handles.wordTimes(wordnum,1));
     maxs = handles.audio(handles.wordTimes(wordnum,2));
-    xlim ([0 length(e)])
+%     xlim ([0 length(e)])
     ylim([-1 1])
-    scatter(handles.axesAudio, fs/5, mins, 'foreground', 'green')
-    scatter(handles.axesAudio, fs/5+(handles.wordTimes(wordnum,2)-handles.wordTimes(wordnum,1)), maxs, 'foreground', 'red')
+    handles.ws_hdl = scatter(handles.axesAudio, wordStart, mins, 100,'dg','filled');
+    handles.we_hdl = scatter(handles.axesAudio, wordEnd, maxs, 100, 'dr','filled');
+
+%     scatter(handles.axesAudio, fs/5, mins, 'foreground', 'green')
+%     scatter(handles.axesAudio, fs/5+(handles.wordTimes(wordnum,2)-handles.wordTimes(wordnum,1)), maxs, 'foreground', 'red')
     hold(handles.axesAudio,'off')
+    
+    % change title to reflect expected word and word number
+    title(handles.axesAudio, sprintf('Word # %d. "%s"', handles.wordNum, ...
+        handles.wordpred{handles.wordNum}))
 end
 
 guidata(hObject, handles)
@@ -638,11 +687,20 @@ function pushbuttonAddRow_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbuttonAddRow (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% Get new times
+[x,~] = ginput(2);
+wordLimits = round(x(:)');
+
+% plot them
+hold(handles.axesAudio,'on')
+scatter(handles.axesAudio, wordLimits(:)', handles.audio(wordLimits)',500,'.k')
+hold(handles.axesAudio,'off')
+
 data = get(handles.uitableTimes, 'data');
-b = [0, 0];
 wordnum = handles.wordNum;
 
-data = [data(1:wordnum,:); b; data(wordnum+1:end,:)];
+data = [data(1:wordnum,:); wordLimits; data(wordnum+1:end,:)];
 handles.wordTimes = data;
 
 a = 1:length(handles.wordTimes); a = a';
@@ -719,17 +777,25 @@ function pushbuttonEditStart_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbuttonEditStart (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[x, y] = ginput(1);
-newstart = round(x)+handles.wordWindow;
+[x, ~] = ginput(1);
+% newstart = round(x)+handles.wordWindow;
 
 data = get(handles.uitableTimes, 'data');
 wordnum = handles.wordNum;
-data(wordnum,1) = newstart;
+% data(wordnum,1) = newstart;
+data(wordnum,1) = round(x);
+
+% change yword
+handles.yword = handles.audio(data(wordnum,1):data(wordnum,2));
 
 handles.wordTimes = data;
 a = 1:length(handles.wordTimes); a = a';
 set(handles.listboxNumWords, 'String', {a});
 set(handles.uitableTimes, 'Data', handles.wordTimes);
+
+% Re-plot scatter dot
+handles.ws_hdl.XData = round(x);
+handles.ws_hdl.YData = handles.audio(round(x));
 
 guidata(hObject, handles)
 
@@ -739,17 +805,24 @@ function pushbuttonEditEnd_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbuttonEditEnd (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[x, y] = ginput(1);
-newstart = round(x)+handles.wordWindow;
+[x, ~] = ginput(1);
+% newstart = round(x)+handles.wordWindow;
 
 data = get(handles.uitableTimes, 'data');
 wordnum = handles.wordNum;
-data(wordnum,2) = newstart;
+data(wordnum,2) = round(x);
+
+% change yword
+handles.yword = handles.audio(data(wordnum,1):data(wordnum,2));
 
 handles.wordTimes = data;
 a = 1:length(handles.wordTimes); a = a';
 set(handles.listboxNumWords, 'String', {a});
 set(handles.uitableTimes, 'Data', handles.wordTimes);
+
+% Re-plot scatter dot
+handles.we_hdl.XData = round(x);
+handles.we_hdl.YData = handles.audio(round(x));
 
 guidata(hObject, handles)
 
@@ -764,3 +837,63 @@ handles.playaudio = audioplayer(handles.yword, fs);
 play(handles.playaudio);
 
 guidata(hObject, handles)
+
+
+% --- Executes on button press in pushbuttonPreviousWord.
+function pushbuttonPreviousWord_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonPreviousWord (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+w = handles.wordNum-1;
+if w >=0,
+    handles.listboxNumWords.Value = w;
+    guidata(gcbo,handles)
+    listboxNumWords_Callback(handles.listboxNumWords, eventdata, handles)
+end
+    
+% --- Executes on button press in pushbuttonNextWord.
+function pushbuttonNextWord_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonNextWord (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+w = handles.wordNum+1;
+if w <= max([length(handles.wordpred), length(handles.wordTimes)]),
+    handles.listboxNumWords.Value = w;
+    guidata(gcbo,handles)
+    listboxNumWords_Callback(handles.listboxNumWords, eventdata, handles)
+end
+
+
+% --- Executes when entered data in editable cell(s) in uitableWords.
+function uitableWords_CellEditCallback(hObject, eventdata, handles)
+% hObject    handle to uitableWords (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
+%	Indices: row and column indices of the cell(s) edited
+%	PreviousData: previous data for the cell(s) edited
+%	EditData: string(s) entered by the user
+%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
+%	Error: error string when failed to convert EditData to appropriate value for Data
+% handles    structure with handles and user data (see GUIDATA)
+R = eventdata.Indices;
+
+handles.wordpred{R(1)} = eventdata.EditData;
+guidata(gcbo, handles)
+
+
+% --- Executes on button press in pushbuttonAddMissingWord.
+function pushbuttonAddMissingWord_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonAddMissingWord (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Generate a new row
+oldTable = handles.wordpred;
+newTable = [oldTable(1:handles.wordNum); {''};oldTable(handles.wordNum+1:end)];
+handles.uitableWords.Data = newTable;
+handles.wordpred = newTable;
+guidata(gcbo, handles)
+
+% Look up the start and end times
+pushbuttonAddRow_Callback(handles.pushbuttonAddRow, [], handles)
+guidata(gcbo, handles)
+
