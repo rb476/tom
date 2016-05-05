@@ -16,12 +16,15 @@ answersTbl = cell(7,6);
 answersTbl(1,:) = {'Cat','Incorrect','Correct','Don''t know','Total','% Correct'};
 answersTbl(2:7,1) = {'FB','TB','FO','TO','DTB','Total'};
 
-resp = ans_no(:,[15 17]);
+% resp = ans_no(:,[15 17]);
+resp = ans_no(:,[13 16]);
 
 % populate table
 for cat = 1:5
-    trow = ans_no(:,4+cat);
-    arow = ans_no(:,10);
+%     trow = ans_no(:,4+cat);
+%     arow = ans_no(:,10);
+    trow = ans_no(:,3+cat);
+    arow = ans_no(:,9);
     switch cat
         case {1,2,5}
             % belief questions are always first in the database

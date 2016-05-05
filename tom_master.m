@@ -1,16 +1,17 @@
 %% File names
-preHeader.case    = 1;
-preHeader.session = 1;
+preHeader.case    = 2;
+preHeader.session = 2;
 
-xls_page = 'Randomization 1'; % This needs to be changed manually
+xls_page = 'Randomization 8'; % This needs to be changed manually
 xls_file = sprintf('prompts list db case %d answers.xlsx', preHeader.case);
 spk_file = sprintf('neurons case %d session %d',preHeader.case, preHeader.session);
 lfp_file = sprintf('LFP case %d session %d',preHeader.case, preHeader.session);
 audio_file = sprintf('prompt times case %d session %d',preHeader.case, preHeader.session);
+wordsFile = sprintf('words case %d session %d.txt',preHeader.case, preHeader.session);
 
 %% Load tags for the prompts, preliminary description of behaviour
 tom_summarySingle;
-openvar answersTbl
+% openvar answersTbl
 
 %% load spike times
 spks = load(spk_file);
@@ -31,21 +32,27 @@ for f = 1:5,
 end
 
 %% Load audio times
-load(audio_file)
+% load(audio_file)
 
 %% prepare data header
 preHeader.animal    = preHeader.case;
-preHeader.trialType = ans_no(:,1:10);
-preHeader.answers   = ans_no(:,[15 17]);
+% preHeader.trialType = ans_no(:,1:10);
+% preHeader.answers   = ans_no(:,[15 17]);
+% preHeader.trialType = ans_no(:,1:9);
+preHeader.answers   = ans_no(:,[13 16]);
 preHeader.trialNo   = size(ans_no,1);
+preHeader.trialTypeTable = cell2table(ans_all(2:end,1:9),'VariableNames',ans_all(1,1:9));
 preHeader.audio     = audio;
 preHeader.fs_spike  = 44000;    % Hz
 preHeader.fs_lfp    = 1375;     % Hz
 preHeader.fs_audio  = 22000;    % Hz
 
-preHeader.trialTypeTable = array2table(preHeader.trialType,'VariableNames', ...
-    {'TrialNo','IDNo','Trunk','Branch','False_belief','true_belief','false_object',...
-    'true_object','dbl_true_belief','Q_order'});
+% preHeader.trialTypeTable = array2table(preHeader.trialType,'VariableNames', ...
+%     {'TrialNo','IDNo','Trunk','Branch','False_belief','true_belief','false_object',...
+%     'true_object','dbl_true_belief','Q_order'});
+% preHeader.trialTypeTable = array2table(preHeader.trialType,'VariableNames', ...
+%     {'IDNo','Trunk','Branch','False_belief','true_belief','false_object',...
+%     'true_object','dbl_true_belief','Q_order'});
 % preHeader.trialTimes_Spl = trialTimes;
 % preHeader.trialTimes_Sec = trialTimes/fs;
 % preHeader.BHV       = BHV;
@@ -74,52 +81,69 @@ nTrials = size(ans_no,1);
 % ansTime_on = reshape(ansTime_on', nTrials*2, 1)-trStart;
 % ansTime_on = round(ansTime_on*1000);
 
-correct = reshape(preHeader.answers', nTrials*2, 1);
+preHeader.correct = reshape(preHeader.answers', nTrials*2, 1);
 %% Populate a question-type matrix by brute force
 % FB=1, TB=2, DTB=3, FO=4, TO=5
 qCat = zeros(nTrials,2);
+T =  preHeader.trialTypeTable;
 for i = 1:nTrials,
-    if ans_no(i,5),
-        qCat(i,ans_no(i,10)) = 1;
-    elseif ans_no(i,6)
-        qCat(i,ans_no(i,10)) = 2;
-    elseif ans_no(i,9)
-        qCat(i,ans_no(i,10)) = 3;
+
+    if T.false_belief(i)==1,
+        qCat(i,T.q_order(i)) = 1;
+    elseif T.true_belief(i)==1
+        qCat(i,T.q_order(i)) = 2;
+    elseif T.dbl_true_believe(i)==1
+        qCat(i,T.q_order(i)) = 3;
     end
-    if ans_no(i,7),
-        qCat(i,3-ans_no(i,10)) = 4;
-    elseif ans_no(i,8)
-        qCat(i,3-ans_no(i,10)) = 5;
+    if T.false_object(i)==1,
+        qCat(i,3-T.q_order(i)) = 4;
+    elseif T.true_object(i)==1,
+        qCat(i,3-T.q_order(i)) = 5;
     end
 end
 qCatVec = reshape(qCat, nTrials*2, 1);
 
 % populate matrix with belief/object and truthood/falsehood as factors
-belief     = single(findIndicesInVector(qCatVec, [1 2]));
-belief(qCatVec==3) = 2; 
-% belief     = single(findIndicesInVector(qCatVec, [1 2 3]));
-% belief = belief(correct==1);
-% falsehood  = single(findIndicesInVector(qCatVec(correct==1), [1 4]));
-falsehood  = single(findIndicesInVector(qCatVec, [1 4]));
-% preHeader.qTime_off     = qTime_off;
-% preHeader.ansTime_on    = ansTime_on;
-preHeader.belief        = belief;
-preHeader.falsehood     = falsehood;
-preHeader.qCatVec       = qCatVec;
+% belief     = single(findIndicesInVector(qCatVec, [1 2]));
+% belief(qCatVec==3) = 2; 
+% % belief     = single(findIndicesInVector(qCatVec, [1 2 3]));
+% % belief = belief(correct==1);
+% % falsehood  = single(findIndicesInVector(qCatVec(correct==1), [1 4]));
+% falsehood  = single(findIndicesInVector(qCatVec, [1 4]));
+% % preHeader.qTime_off     = qTime_off;
+% % preHeader.ansTime_on    = ansTime_on;
+% preHeader.belief        = belief;
+% preHeader.falsehood     = falsehood;
+% preHeader.qCatVec       = qCatVec;
 
+preHeader.belief = NaN(100,1);
+preHeader.belief(qCatVec <= 3) = 1;
+preHeader.belief(qCatVec > 3) = 0;
+preHeader.falsehood = NaN(100,1);
+preHeader.falsehood(qCatVec == 1 | qCatVec == 4) = 1;
+preHeader.falsehood(qCatVec == 2 | qCatVec == 3 | qCatVec == 5) = 0;
+preHeader.qCatVec = qCatVec;
 
 %% Append transcription to header
+F = fopen(wordsFile,'r');
 % F = fopen('C:\Users\Raymundo\Dropbox\MGH\ToM (Shared)\ToM\Case 1\words_case1_session1(3).txt','r');
-F = fopen('C:\Users\Raymundo\Dropbox\MGH\ToM (Shared)\ToM\Case 2\Depth2\words case 2 session 2.txt','r');
+% F = fopen('C:\Users\Raymundo\Dropbox\MGH\ToM (Shared)\ToM\Case 2\Depth2\words case 2 session 2.txt','r');
 
 M = textscan(F, '%f %f %s');
+% remove empty strings
+m = [M{1,3}];
+for i = 1:length(m),
+    rt(i) = isempty(m{i});
+end
+
 fclose(F);
-t = array2table([M{1},M{2}],'VariableNames',{'Start','End'});
+t = array2table([M{1},M{2}]/10000000,'VariableNames',{'Start','End'});
 t2 = array2table(M{3},'VariableNames',{'Words'});
 t3 = horzcat(t, t2);
+t3(rt==1,:) = []; 
 
 % Determine who spoke
-noWords = height(t);
+noWords = height(t3);
 pqa = zeros(noWords,1);
 lastPunct = '.'; 
 last = 1; modifier = 0; 
@@ -154,7 +178,7 @@ t6 = horzcat(t5, array2table(pid+1,'VariableNames',{'Prompt'}));
 preHeader.transcription = t6;
 %% finish preparing dataset
 % tomCase(preHeader.case).session(preHeader.session) = preHeader;
-tomCase.session(preHeader.session) = preHeader;
+tomCase.session = preHeader;
 
 fprintf('tom_master done!\n')
 return
