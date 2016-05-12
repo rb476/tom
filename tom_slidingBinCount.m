@@ -5,10 +5,10 @@ function [slidBC, slidCtr] = tom_slidingBinCount(spikeTS, events, time, inputsiz
 %
 %   Input: 
 %         spikeTS, vector with unit's spiking time stamps
-%         events, vector used to align neuronal data
-%         time, start and end of task epoch of interest (both positive)
-%         inputsize, window size
-%         stepsize, sliding window time step
+%         events, vector used to align neuronal data (in ms)
+%         time, start and end of task epoch of interest (both positive, in ms)
+%         inputsize, window size (in ms)
+%         stepsize, sliding window time step (in ms)
 %
 %   output:
 %         slidBC, sliding window spike bin count

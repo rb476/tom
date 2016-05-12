@@ -2,11 +2,12 @@
 % append results
 params.time = [2000 2000];
 params.inputsize = 200;
-params.stepsize = 25;
+params.stepsize = 20;
 
 output.wrs = [];
 output.anova2 = [];
 output.roc = [];
+output.nameswrs = [];
 for i = 1:length(allCases),
     if ~isempty(allCases(i))
         for ii = 1:size(allCases(i).session,2),
@@ -14,6 +15,9 @@ for i = 1:length(allCases),
             output.wrs = [output.wrs; sessionoutput.wrs];
             output.anova2 = [output.anova2; sessionoutput.res2ANOVA];
             output.roc = [output.roc; sessionoutput.roc_fb];
+
+%              out = tom_testSpikeNames(allCases(i).session(ii), params);
+%              output.nameswrs = [output.nameswrs; out.rs];
         end
     end
 end
@@ -27,22 +31,27 @@ Yper = [];
 anTt = sprintf('Win=%d step=%d',params.inputsize, params.stepsize);
 for j = 1:2,
 %     for jj = 7:8,
+        % AUROC
          Y = reshape(output.roc(output.wrs(:,5)==j,8), length(X), length(a));
          p = reshape(output.roc(output.wrs(:,5)==j,7), length(X), length(a));
          Y(p>0.025 & p<0.975) = 0.5;
          Y(Y<0.5) = Y(Y<0.5)+0.5;
          Yper = [Yper, mean(Y~=0.5,2)*100];
          
+        % Rank-sum
 %         Y = reshape(output.wrs(output.wrs(:,5)==j,jj), length(X), length(a));
+
+        % 2-way ANOVA
 %         Y = reshape(output.anova2(output.anova2(:,5)==j,jj), ...
 %             length(X), length(a));
+
 %         Y(Y>0.05) = 1;
 %         Y(isnan(Y)) = 1;
 %         Yper = [Yper, mean(Y<1,2)*100];
                
         lat = zeros(length(a),1);
         for i = 1:length(a),           
-             preLat =  find(((Y(:,i)-0.5)~=0),1);
+             preLat =  find(((Y(:,i)-0.5)~=0),1); % AUROC
 %             preLat =  nanmin(find(Y(:,i)<1));
             if ~isempty(preLat),
                 lat(i) = preLat;
@@ -55,8 +64,6 @@ for j = 1:2,
         figure
 %         imagesc(sY');
         imagesc(sY', 'XData', X, 'YData', 1:length(a))
-%         imagesc(sY', 'XData', X, 'YData', 1:length(a), [min(min(Y)), 1-min(min(Y))])
-%         imagesc(Y', 'XData', X, 'YData', 1:length(a), [min(min(Y)), 1-min(min(Y))])
 %         C(33,:) = ones(3,1);
 %         C = colormap;
 %         C(1,:) = ones(3,1);
@@ -73,7 +80,8 @@ for j = 1:2,
             title 'Rectified AUROC'
         else
 %             title 'Thresholded p-value FB vs TB'
-            title 'Thresh p-val Falsehood'
+%             title 'Thresh p-val Falsehood'
+             title 'Rectified AUROC'
         end
         annotatePlot(anTt);
 %     end
@@ -88,8 +96,9 @@ ylabel '% of significant neurons'
 box off
 
 if size(Yper,2)==4,
-    legend({'Q Belief','Q False','A belief', 'A false'})
+%     legend({'Q Belief','Q False','A belief', 'A false'})
+    legend({'Q FB vs. FO','Q FB vs. TB','A FB vs. FO', 'A FB vs. TB'})
 else
     legend({'Question','Answer'})
 end
-annotateFigure(anTt);
+annotatePlot(anTt);
