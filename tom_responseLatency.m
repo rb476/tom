@@ -29,7 +29,7 @@ fxSize_lat = anovaEffectSize(table_lat);
 [mB_lat, seB_lat, nB_lat] = grpstats(latency, factors(:,1), {'mean','sem','numel'});
 catSumBelief = [mB_lat, seB_lat, nB_lat];
 
-% We can also ask at a basic level between categories w/ 1-way ANOVa
+% We can also ask at a basic level between categories w/ 1-way ANOVA
 [p_lat_1, t_lat_1, stats_lat_1] = anova1(latency, qCatVec(correct==1),'off');
 mc1=multcompare(stats_lat_1);
 [mB_latc, seB_latc, nB_latc] = grpstats(latency, qCatVec(correct==1), {'mean','sem','numel'});

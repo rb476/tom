@@ -1,4 +1,4 @@
-function res2ANOVA = tom_testSpikeActivity(data, typeOfPlot, params)
+function output = tom_testSpikeActivity(data, typeOfPlot, params)
 % Call sliding analysis to perform 2-way ANOVA with interaction on belief
 % and falsehood on every unit
 %
@@ -10,41 +10,56 @@ pvals = 7:8;
 fxSz =  11:12;
 mfr = 13:16; 
 
-% if nargin==3,
-    time = [2000 2000];
-    inputsize = 200;
-    stepsize = 50;    
-% else
-%     time = params.time;
-%     inputsize = params.inputsize;
-%     stepsize = params.stepsize;    
-% end
+% time = [2000 2000];
+% inputsize = 200;
+% stepsize = 25; % Make stepsize=inputsize to perform 'fixed window analyses'    
+time = params.time;
+inputsize = params.inputsize;
+stepsize = params.stepsize;
 
-
-
+% Initialization
 theseSlides = (sum(time)-inputsize+stepsize)/stepsize;
+res2ANOVA = [];
+resWRS = [];
+roc_fb = [];
+
+% Find Q&A times
 Q = data.transcription.Question==1;
 qTime_off  = data.transcription.End(Q);
 ansTime_on = data.transcription.Start(find(Q)+1);
 epochTimes = round([qTime_off, ansTime_on]*1000); % in ms
-anovaFactors = [data.belief, data.falsehood];
-anovaFactors(sum(isnan(anovaFactors),2)>0,:) = []; % remove NaNs
 
-res2ANOVA = [];
+% Grouping factors
+anovaFactors = [data.belief, data.falsehood];
+
+% remove NaNs, which are placeholders for planned Q that weren't asked
+c=data.correct;
+notAsked = isnan(c);
+% anovaFactors(sum(isnan(anovaFactors),2)>0,:) = []; 
+anovaFactors(notAsked,:) = []; 
+cats = data.qCatVec(notAsked==0);
+
+% Only analyze correct responses (although interesting, behavioural errors 
+%   are ~10%)
+epochTimes(c==0,:)=[];
+anovaFactors(c==0,:)=[];
+cats(c==0) = [];
+
+
 for ch = 1:5,
     units = size(data.channel(ch).unit,2);    
     if ~isempty(units),
         for unit = 1:units
             spikeTS = round(data.channel(ch).unit(:,unit).ts*1000); % in ms
-            for epoch = 1:2,
+            for epoch = 1:2,                                                               
                 % Obtain bin counts        
                 [slidBC, slidCtr] = tom_slidingBinCount(spikeTS, ...
                     epochTimes(:, epoch), time, inputsize, stepsize);
                 
-                % Perform 2-ANOVA, repeat for each window
+                % repeat for each window
                 for win = 1:theseSlides
-                    [P, tbl] = anovan(slidBC(win,:)', ...
-                        anovaFactors, ...
+                    % Perform 2-ANOVA, 
+                    [P, tbl] = anovan(slidBC(win,:)', anovaFactors, ...
                         'display','off', 'varnames',{'Belief','Falsehood'}, ...
                         'model','linear','sstype',1); % NB, sstype=3 results in NaN in falsehood
                     fxSize = anovaEffectSize(tbl);
@@ -56,11 +71,28 @@ for ch = 1:5,
                     res2ANOVA = [res2ANOVA; identifier, P', [tbl{2:3,6}], ...
                         fxSize(1:end-1,3)',...
                         m', se', n'];
-                end % for windows
+                    
+                    % Wilcoxon rank sum/umw
+                    prs_b = ranksum(slidBC(win,cats==1), slidBC(win,cats==4));%FB vs. FO
+                    prs_f = ranksum(slidBC(win,cats==1), slidBC(win,cats==2)); %FB vs. TB
+                    resWRS = [resWRS; identifier, prs_b, prs_f];
+                    
+                    % ROC                   
+                    IN = [slidBC(win,cats==2)'; slidBC(win,cats==1)'];
+                    labs = [zeros(sum(cats==2),1); ones(sum(cats==1),1)];
+                    [permP, oSt] = permutationTest(IN, labs, 'ROCsk', 500, 0);
+                    roc_fb  = [roc_fb; identifier, permP, oSt];
+                    
+                end % for sliding windows
             end % for epochs
         end % for units
     end % if units
 end % for channels
+
+%% All output
+output.res2ANOVA = res2ANOVA;
+output.wrs = resWRS;
+output.roc_fb = roc_fb;
 
 %% classify responses (more interesting are those around and post answers)
 
