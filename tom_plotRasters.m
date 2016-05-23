@@ -4,9 +4,9 @@
 
 
 %% Flexible plot of SDF
-params.plotRange    = [3000 3000];
-params.binSize      = 5;
-params.smo          = 30;
+params.plotRange    = [1000 1000];
+params.binSize      = 10;
+params.smo          = 7;
 plotTime = 'question';
 plotCat = 'categ';
 

@@ -1,8 +1,8 @@
 %% File names
-preHeader.case    = 4;
+preHeader.case    = 3;
 preHeader.session = 2;
 
-xls_page = 'Randomization 8'; % This needs to be changed manually
+xls_page = 'Randomization 6'; % This needs to be changed manually
 xls_file = sprintf('prompts list db case %d answers.xlsx', preHeader.case);
 spk_file = sprintf('neurons case %d session %d',preHeader.case, preHeader.session);
 lfp_file = sprintf('LFP case %d session %d',preHeader.case, preHeader.session);

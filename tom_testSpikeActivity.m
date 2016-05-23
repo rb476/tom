@@ -78,10 +78,10 @@ for ch = 1:5,
                     resWRS = [resWRS; identifier, prs_b, prs_f];
                     
                     % ROC                   
-                    IN = [slidBC(win,cats==2)'; slidBC(win,cats==1)'];
-                    labs = [zeros(sum(cats==2),1); ones(sum(cats==1),1)];
-                    [permP, oSt] = permutationTest(IN, labs, 'ROCsk', 500, 0);
-                    roc_fb  = [roc_fb; identifier, permP, oSt];
+%                     IN = [slidBC(win,cats==2)'; slidBC(win,cats==1)'];
+%                     labs = [zeros(sum(cats==2),1); ones(sum(cats==1),1)];
+%                     [permP, oSt] = permutationTest(IN, labs, 'ROCsk', 500, 0);
+%                     roc_fb  = [roc_fb; identifier, permP, oSt];
                     
                 end % for sliding windows
             end % for epochs

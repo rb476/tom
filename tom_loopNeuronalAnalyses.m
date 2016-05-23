@@ -12,9 +12,9 @@ for i = 1:length(allCases),
     if ~isempty(allCases(i))
         for ii = 1:size(allCases(i).session,2),
             sessionoutput = tom_testSpikeActivity(allCases(i).session(ii), [], params);            
-            output.wrs = [output.wrs; sessionoutput.wrs];
-            output.anova2 = [output.anova2; sessionoutput.res2ANOVA];
-            output.roc = [output.roc; sessionoutput.roc_fb];
+%             output.wrs = [output.wrs; sessionoutput.wrs];
+%             output.anova2 = [output.anova2; sessionoutput.res2ANOVA];
+%             output.roc = [output.roc; sessionoutput.roc_fb];
 
 %              out = tom_testSpikeNames(allCases(i).session(ii), params);
 %              output.nameswrs = [output.nameswrs; out.rs];
@@ -25,8 +25,8 @@ end
 
 
 %% Generate a heatmap for each combination of epoch and facotr/comparison
-[a,b,nId]=unique(output.wrs(:,1:4),'rows');
-X = unique(output.wrs(:,6));
+[a,b,nId]=unique(output.anova2(:,1:4),'rows');
+X = unique(output.anova2(:,6));
 Yper = [];
 anTt = sprintf('Win=%d step=%d',params.inputsize, params.stepsize);
 for j = 1:2,

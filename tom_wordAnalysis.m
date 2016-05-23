@@ -3,6 +3,7 @@
 % pronouns, etc.
 
 % %%
+% Get all the words
 % allWords = [];
 % for i = 1:length(allCases),
 %     if ~isempty(allCases(i))
