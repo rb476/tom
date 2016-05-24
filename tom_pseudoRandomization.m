@@ -11,12 +11,12 @@ function newOrder = tom_pseudoRandomization(expConds, requested)
 % rbm 11.15
 
 % [FB,  TB,  FO, TO, DTB]
-requested = [   
-     0     0     0     0     1     10
-     0     1     0     1     0     10
-     0     1     1     0     0     10
-     1     0     0     1     0     10
-     1     0     1     0     0     10];
+% requested = [   
+%      0     0     0     0     1     10
+%      0     1     0     1     0     10
+%      0     1     1     0     0     10
+%      1     0     0     1     0     10
+%      1     0     1     0     0     10];
 
 
 % requested = [   
