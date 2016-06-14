@@ -53,4 +53,5 @@ for i = 1:size(newOrder,1)
 end
 
 % Write to Excel file
-xlswrite(readHere, rand_prompts, sheetName, 'A1')
+xlswrite(readHere, rand_prompts, sheetName, 'A1');
+fprintf('Wrote %s. Done!\n',sheetName)
