@@ -4,7 +4,7 @@ function concatenateMPXfiles(dataToMerge)
 %
 %   concatenateMPXfiles(dataToMerge)
 %
-% In: dataToMerge, string, {spikes,LFP}
+% In: dataToMerge, string, {spikes,LFP,audio}
 % 
 % rbm 12.15
 
@@ -29,6 +29,9 @@ for i = 1:length(files)
         case 'LFP'
 %             all_samples = [all_samples, [CLFP_01.Samples; CLFP_02.Samples; CLFP_03.Samples; CLFP_04.Samples; CLFP_05.Samples]];
             all_samples = [all_samples, [CLFP_01; CLFP_02; CLFP_03; CLFP_04; CLFP_05]];
+        case 'audio'
+            all_samples = [all_samples, CECOG_HF_1___01___Array_1___01];
+            fs = CECOG_HF_1___01___Array_1___01_KHz*1000;
     end
 end
 
@@ -55,4 +58,7 @@ switch dataToMerge
         else
             disp('Success concatenating files to RAD file')
          end
+    case 'audio'
+        fileName = input('Type in name for audio file, follow the convention "session audio case X session Y.wav":   ');
+        audiowrite(fileName, all_samples, fs);
 end
