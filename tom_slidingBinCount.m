@@ -28,6 +28,15 @@ end
 bc = alignSpikesToEvent_2(spikeTS, events, stepsize);
 middle = size(bc, 1)/2;
 
+% Z-score to ca. 1s pre event
+toi = middle-ceil(1000/stepsize):middle-1;
+mbl = mean(bc(toi,:));
+sdl = std(bc(toi,:));
+for i = 1:size(bc,2),
+    bc_z(:,i) = (bc(:,i) - mbl(i))./ sdl(i);
+end
+bc = bc_z;
+
 % Obtain impulse bin count for every sliding window 
 slidBC = zeros(theseSlides,size(bc,2));
 

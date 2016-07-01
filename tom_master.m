@@ -1,17 +1,26 @@
-%% File names
-preHeader.case    = 3;
-preHeader.session = 2;
+% % to Generate the files:
+% 1. answer excel sheet: copy paste from database to a new file and write the subjects answers
+% 2. neurons file: direct output from offline sorter, if export to matlab doesn't work 
+%     use 'transfromCSVspikesToMatlab'.
+% 3. LFP file: use concatenateMPXfiles to generate a file with LFP from all channels.
+% 4. audio file: use concatenateMPXfiles to generate a file with the audio
+% 5. words file: use waveSurfer to transcribe the audio
 
-xls_page = 'Randomization 6'; % This needs to be changed manually
+% File names
+preHeader.case    = 4;
+preHeader.session = 3;
+
+xls_page = 'Randomization 9'; % This needs to be changed manually
 xls_file = sprintf('prompts list db case %d answers.xlsx', preHeader.case);
 spk_file = sprintf('neurons case %d session %d',preHeader.case, preHeader.session);
 lfp_file = sprintf('LFP case %d session %d',preHeader.case, preHeader.session);
 if preHeader.case >= 4
-    audio_file = sprintf('session audio case %d session %d.wav',preHeader.case, preHeader.session);
+    audio_file = sprintf('denoised audio case %d session %d.wav',preHeader.case, preHeader.session);
 else
     audio_file = sprintf('prompt times case %d session %d',preHeader.case, preHeader.session);
 end
 wordsFile = sprintf('words case %d session %d.txt',preHeader.case, preHeader.session);
+
 
 %% Load tags for the prompts, preliminary description of behaviour
 tom_summarySingle;
@@ -150,18 +159,29 @@ Q           = t6.Question==1;
 promptStart = [1; find(diff(t6.Sentence)==-2)+1];
 promptEnd   = find(diff(t6.Sentence)==1 & t6.Speaker(2:end)==1);
 ansEndFirstQ= find(diff(t6.Sentence)==-1);
+% ansEndFirstQ = zeros(max(t6.Prompt),1);
+% qTime_on    = [];
+% ansTime_off = [];
+% for i = 1:max(t6.Prompt),
+%     qTime_on = [qTime_on; ];
+%     ansEndFirstQ(i) = find(diff(t6.Speaker(t6.Prompt==i)==2)==-1,1);
+%     if i>1,
+%         ansEndFirstQ(i) = ansEndFirstQ(i) + find(t6.Prompt==i,1)-1;
+%     end
+% end
 
 preHeader.prompt_on     = t6.Start(promptStart);
 preHeader.prompt_off    = t6.End(promptEnd);
 
-qTime_on  = sort([t6.Start(promptEnd+1); ...
-                    t6.Start(ansEndFirstQ+1)]);
+ qTime_on  = sort([t6.Start(promptEnd+1); ...
+                     t6.Start(ansEndFirstQ+1)]);
 qTime_off  = t6.End(Q);
 ansTime_on = t6.Start(find(Q)+1);
 ansTime_off = sort([t6.End(promptStart(2:end)-1); ...
                               t6.End(ansEndFirstQ); t6.End(end)]);
                           
 % Reshape to insert NaNs for questions not asked....
+preHeader.correct(preHeader.correct==2) = NaN(1);
 preHeader.qTime_on = NaN(100,1);
 preHeader.qTime_on(~isnan(preHeader.correct)) = qTime_on;
 preHeader.qTime_off = NaN(100,1);

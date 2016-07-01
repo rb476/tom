@@ -1,18 +1,29 @@
 function output = tom_testSpikeActivity(data, typeOfPlot, params)
-% Call sliding analysis to perform 2-way ANOVA with interaction on belief
+% Call sliding analysis to perform statistial test on belief
 % and falsehood on every unit
+% Performs: 2-way ANOVA, Wilcoxon ranksum, AUROC w/permutation test
 %
-% typeOfPlot = 'fxSz';
+% In:
 % 
+% data, 'session data structure'
+%
+% typeOfPlot = 'fxSz';'pval,'meanFR'
+%
+% params.time         = [2000 2000];
+% params.inputsize    = 250;
+% params.stepsize     = 25;
+% Make stepsize=inputsize to perform 'fixed window analyses'  
+%
+% See also tom_loopNeuronalAnalyses
+%
+% rbm 5.16
 
 % 2-way ANOVA w/o interaction
 pvals = 7:8;
 fxSz =  11:12;
-mfr = 13:16; 
+mfr = 13:16;
 
-% time = [2000 2000];
-% inputsize = 200;
-% stepsize = 25; % Make stepsize=inputsize to perform 'fixed window analyses'    
+
 time = params.time;
 inputsize = params.inputsize;
 stepsize = params.stepsize;
@@ -29,21 +40,24 @@ qTime_off  = data.transcription.End(Q);
 ansTime_on = data.transcription.Start(find(Q)+1);
 epochTimes = round([qTime_off, ansTime_on]*1000); % in ms
 
+if size(epochTimes,1)~=100,
+    % use second method,
+    epochTimes = round([data.qTime_off, data.ansTime_on]*1000); % in ms
+end
+
 % Grouping factors
 anovaFactors = [data.belief, data.falsehood];
+cats = data.qCatVec;
 
 % remove NaNs, which are placeholders for planned Q that weren't asked
 c=data.correct;
 notAsked = isnan(c);
-% anovaFactors(sum(isnan(anovaFactors),2)>0,:) = []; 
-anovaFactors(notAsked,:) = []; 
-cats = data.qCatVec(notAsked==0);
 
 % Only analyze correct responses (although interesting, behavioural errors 
 %   are ~10%)
-epochTimes(c==0,:)=[];
-anovaFactors(c==0,:)=[];
-cats(c==0) = [];
+epochTimes(c==0 | notAsked,:)=[];
+anovaFactors(c==0 | notAsked,:)=[];
+cats(c==0 | notAsked) = [];
 
 
 for ch = 1:5,
@@ -56,26 +70,39 @@ for ch = 1:5,
                 [slidBC, slidCtr] = tom_slidingBinCount(spikeTS, ...
                     epochTimes(:, epoch), time, inputsize, stepsize);
                 
+                if size(slidBC,2)~=size(anovaFactors,1)
+                    warning('Problem at tom_testSpikeActivity')
+                    keyboard
+                end
+                
+                              
                 % repeat for each window
                 for win = 1:theseSlides
-                    % Perform 2-ANOVA, 
-                    [P, tbl] = anovan(slidBC(win,:)', anovaFactors, ...
-                        'display','off', 'varnames',{'Belief','Falsehood'}, ...
-                        'model','linear','sstype',1); % NB, sstype=3 results in NaN in falsehood
-                    fxSize = anovaEffectSize(tbl);
-                    [m, se, n] = grpstats(slidBC(win,:)', anovaFactors,...
-                        {'mean','sem','numel'});
                     identifier = [data.case, data.session, ...
                         ch, unit, epoch, slidCtr(win)/1000];
 
-                    res2ANOVA = [res2ANOVA; identifier, P', [tbl{2:3,6}], ...
+                    % Perform 2-ANOVA, 
+%                     [P, tbl] = anovan(slidBC(win,:)', anovaFactors, ...
+%                         'display','off', 'varnames',{'Belief','Falsehood'}, ...
+%                         'model','linear','sstype',1); % NB, sstype=3 results in NaN in falsehood
+                    [P, tbl] = anovan(slidBC(win,:)', anovaFactors, ...
+                        'display','off', 'varnames',{'Belief','Falsehood'}, ...
+                        'model','interaction','sstype',1); % NB, sstype=3 results in NaN in falsehood
+                    fxSize = anovaEffectSize(tbl);
+                    [m, se, n] = grpstats(slidBC(win,:)', anovaFactors,...
+                        {'mean','sem','numel'});
+
+%                     res2ANOVA = [res2ANOVA; identifier, P', [tbl{2:3,6}], ...
+%                         fxSize(1:end-1,3)',...
+%                         m', se', n'];
+                    res2ANOVA = [res2ANOVA; identifier, P', [tbl{2:4,6}], ...
                         fxSize(1:end-1,3)',...
                         m', se', n'];
                     
                     % Wilcoxon rank sum/umw
-                    prs_b = ranksum(slidBC(win,cats==1), slidBC(win,cats==4));%FB vs. FO
-                    prs_f = ranksum(slidBC(win,cats==1), slidBC(win,cats==2)); %FB vs. TB
-                    resWRS = [resWRS; identifier, prs_b, prs_f];
+%                     prs_b = ranksum(slidBC(win,cats==1), slidBC(win,cats==4));%FB vs. FO
+%                     prs_f = ranksum(slidBC(win,cats==1), slidBC(win,cats==2)); %FB vs. TB
+%                     resWRS = [resWRS; identifier, prs_b, prs_f];
                     
                     % ROC                   
 %                     IN = [slidBC(win,cats==2)'; slidBC(win,cats==1)'];
@@ -91,8 +118,8 @@ end % for channels
 
 %% All output
 output.res2ANOVA = res2ANOVA;
-output.wrs = resWRS;
-output.roc_fb = roc_fb;
+% output.wrs = resWRS;
+% output.roc_fb = roc_fb;
 
 %% classify responses (more interesting are those around and post answers)
 

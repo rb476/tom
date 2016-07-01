@@ -1,10 +1,12 @@
 function concatenateMPXfiles(dataToMerge)
-% Concatenates neuronal data from MPX files. Writes to file that can be
+% Concatenates neuronal data originally in MPX files. Writes to file that can be
 % imported by offline sorter (spikes) or read in Matlab (spikes/LFP).
 %
 %   concatenateMPXfiles(dataToMerge)
 %
 % In: dataToMerge, string, {spikes,LFP,audio}
+% 
+% note that this function works with the MAT version of the MPX files. 
 % 
 % rbm 12.15
 
@@ -17,6 +19,7 @@ here = cd;
 cd 'C:\Users\Raymundo\Documents\MGH\'
 [files,pathname] = uigetfile('*.mat','Select files to merge','MultiSelect','on');
 cd(here)
+% if ~iscell(files) && files==0, return, end
 
 %% Loop-read all files, concatenate all LFP/spike channels
 all_samples = [];
