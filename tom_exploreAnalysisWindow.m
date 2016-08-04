@@ -6,7 +6,7 @@ params.stepsize = 100;
 pThr = 0.05;
 
 matToPlot = zeros(numel(allInputSize),...
-    (sum(params.time)-allInputSize(1)+params.stepsize)/params.stepsize, 6);
+    (sum(params.time)-allInputSize(1)+params.stepsize)/params.stepsize, 3);
 res = [];
 matToPlot_wrs = zeros(size(matToPlot));
 res_wrs = [];
@@ -20,7 +20,8 @@ for isz = 1:numel(allInputSize),
     output.anova2 = [];
     output.roc = [];
 
-    for i = 1:5,
+    % Perform 2-way anova
+    for i = 1:length(allCases),
         for ii = 1:size(allCases(i).session,2),
             sessionoutput = tom_testSpikeActivity(allCases(i).session(ii), [], params); 
             if isz==1 && i==1 && ii ==1
@@ -33,8 +34,9 @@ for isz = 1:numel(allInputSize),
         end    
     end
     
+    % neuron # identifier
     [a,b,nId]=unique(output.anova2(:,1:4),'rows');
-%     X = unique(output.anova2(:,6));
+
     Yper = [];Yper2=[];
     for j = 1:2,
         for jj = 7:9,
@@ -48,11 +50,12 @@ for isz = 1:numel(allInputSize),
             %2-way ANOVA
             X = unique(output.anova2(:,6));
             Y = [];
+            % identify epoch, get P-value, reshape to matrix form
             Y = reshape(output.anova2(output.anova2(:,5)==j,jj), ...
                     length(X), length(a));
-             Y(Y>pThr) = pThr;
+            Y(Y>pThr) = pThr; % change p-values from n.s. to threshold 
             Y(isnan(Y)) = pThr;
-            Yper = [Yper, mean(Y<pThr,2)*100];
+            Yper = [Yper, mean(Y<pThr,2)*100]; % get percentages of significant neurons per factor
         end
     end
     
@@ -61,18 +64,21 @@ for isz = 1:numel(allInputSize),
     
 %     res_wrs(isz).res = [X, Yper2];
 %     matToPlot_wrs(isz, 1:size(Yper2,1), 1:4) = Yper2;
+    
 end
-save('windowSizeExploration_zscore_tom','res','matToPlot');%,'res_wrs','matToPlot_wrs')
+close(h)
+clearvars X Yper Yper2
+% save('windowSizeExploration_zscore_tom','res','matToPlot');%,'res_wrs','matToPlot_wrs')
 toc
 %% plot results
 % t =  {'Q Belief','Q False','A belief', 'A false'};
 t =  {'Q Belief','Q False','Q B-F','A belief', 'A false','A B-F'};
 % t = {'Q FB vs. FO','Q FB vs. TB','A FB vs. FO', 'A FB vs. TB'};
+% t =  {'A belief', 'A false','A B-F'};
+
 X = res(1).res(:,1);
 for k = 1:6,    
-%     X = res(isz).res(:,1);
     figure
-%     imagesc(squeeze(matToPlot(:,:,k)), 'XData', X, 'YData', allInputSize)
     aligRes = NaN(79,15);
     for kk = 1:15,
         aligRes(findIndicesInVector(res(1).res(:,1),res(kk).res(:,1)),kk) = res(kk).res(:,k+1);

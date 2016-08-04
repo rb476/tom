@@ -36,8 +36,14 @@ middle = size(bc, 1)/2;
 %     bc_z(:,i) = (bc(:,i) - mbl(i))./ sdl(i);
 % end
 
-% Z-score to 
-bl_bc = histc(spikeTS(spikeTS<10000),1:stepsize:10000);
+% Z-score to first 10 s of recording
+blSpikes = spikeTS<10000;
+if sum(blSpikes)>0,
+    bl_bc = histc(spikeTS(blSpikes),0:stepsize:10000);
+else
+    blSpikes = spikeTS<=spikeTS(1)+10000;    
+    bl_bc = histc(spikeTS(blSpikes), spikeTS(1):stepsize:(spikeTS(1)+10000));
+end
 mbl = mean(bl_bc);
 sbl = mean(bl_bc);
 bc_z = (bc-mbl)/sbl;
