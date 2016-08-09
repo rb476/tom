@@ -1,8 +1,8 @@
 %% Loop each recorded session, perform 2-anova and WRS running window analyses, 
 % append results
-params.time = [4000 4000];
-params.inputsize = 2000;
-params.stepsize = 500;
+params.time = [3000 3000];
+params.inputsize = 1500;
+params.stepsize = 1500;
 
 output.wrs = [];
 output.anova2 = [];

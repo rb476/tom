@@ -5,7 +5,9 @@ allInputSize = 200:200:3000;
 params.stepsize = 100;
 pThr = 0.05;
 
-matToPlot = zeros(numel(allInputSize),...
+nTestedWindows = numel(allInputSize);
+
+matToPlot = zeros(nTestedWindows,...
     (sum(params.time)-allInputSize(1)+params.stepsize)/params.stepsize, 3);
 res = [];
 matToPlot_wrs = zeros(size(matToPlot));
@@ -13,7 +15,7 @@ res_wrs = [];
 
 h = waitbar(0,'Please wait...');hc=0;
 
-for isz = 1:numel(allInputSize),
+for isz = 1:nTestedWindows,
     params.inputsize = allInputSize(isz);
 %     params.stepsize = params.inputsize;
     output.wrs = [];
@@ -28,11 +30,12 @@ for isz = 1:numel(allInputSize),
                 X = unique(sessionoutput.res2ANOVA(:,6));
             end
 %             output.wrs = [output.wrs; sessionoutput.wrs];
-            output.anova2 = [output.anova2; sessionoutput.res2ANOVA];
+%             output.anova2 = [output.anova2; sessionoutput.res2ANOVA];
+            output.anova2 = [output.anova2; sessionoutput.resReg];
             hc = hc+1;
-            waitbar(hc/(numel(allInputSize)*9), h)
-        end    
-    end
+            waitbar(hc/(nTestedWindows*9), h)
+        end  % session for  
+    end % case/patient for
     
     % neuron # identifier
     [a,b,nId]=unique(output.anova2(:,1:4),'rows');
@@ -56,19 +59,19 @@ for isz = 1:numel(allInputSize),
             Y(Y>pThr) = pThr; % change p-values from n.s. to threshold 
             Y(isnan(Y)) = pThr;
             Yper = [Yper, mean(Y<pThr,2)*100]; % get percentages of significant neurons per factor
-        end
-    end
+        end % factor for
+    end % epoch for
     
     res(isz).res = [X, Yper];
-    matToPlot(isz, 1:size(Yper,1), :) = Yper;
+%     matToPlot(isz, 1:size(Yper,1), :) = Yper;
     
 %     res_wrs(isz).res = [X, Yper2];
 %     matToPlot_wrs(isz, 1:size(Yper2,1), 1:4) = Yper2;
     
-end
+end % window-size for
 close(h)
 clearvars X Yper Yper2
-% save('windowSizeExploration_zscore_tom','res','matToPlot');%,'res_wrs','matToPlot_wrs')
+save('windowSizeExploration_tom','res','matToPlot');%,'res_wrs','matToPlot_wrs')
 toc
 %% plot results
 % t =  {'Q Belief','Q False','A belief', 'A false'};
@@ -79,8 +82,8 @@ t =  {'Q Belief','Q False','Q B-F','A belief', 'A false','A B-F'};
 X = res(1).res(:,1);
 for k = 1:6,    
     figure
-    aligRes = NaN(79,15);
-    for kk = 1:15,
+    aligRes = NaN(79,nTestedWindows);
+    for kk = 1:nTestedWindows,
         aligRes(findIndicesInVector(res(1).res(:,1),res(kk).res(:,1)),kk) = res(kk).res(:,k+1);
     end
     imagesc(aligRes', 'XData', X, 'YData', allInputSize)
@@ -92,6 +95,6 @@ for k = 1:6,
     end
     ylabel 'Window size (ms)'
     colorbar
-    set(gcf,'name',['an2 tom slid win expl ', t{k}])
+    set(gcf,'name',['mlr tom slid win expl ', t{k}, 'z-score pre 1s'])
 %     saveMyFigure
 end

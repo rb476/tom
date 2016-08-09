@@ -33,6 +33,7 @@ theseSlides = (sum(time)-inputsize+stepsize)/stepsize;
 res2ANOVA = [];
 resWRS = [];
 roc_fb = [];
+resReg = [];
 
 % Find Q&A times
 Q = data.transcription.Question==1;
@@ -91,6 +92,7 @@ for ch = 1:5,
                     fxSize = anovaEffectSize(tbl);
                     [m, se, n] = grpstats(slidBC(win,:)', anovaFactors,...
                         {'mean','sem','numel'});
+                                        
 
 %                     res2ANOVA = [res2ANOVA; identifier, P', [tbl{2:3,6}], ...
 %                         fxSize(1:end-1,3)',...
@@ -98,6 +100,14 @@ for ch = 1:5,
                     res2ANOVA = [res2ANOVA; identifier, P', [tbl{2:4,6}], ...
                         fxSize(1:end-1,3)',...
                         m', se', n'];
+                    
+                    % MLR with dummy variables
+                    designMatrix = [ones(length(anovaFactors),1), anovaFactors, ...
+                        anovaFactors(:,1).*anovaFactors(:,2)];
+                    rs_temp = regstats(slidBC(win,:), designMatrix, ...
+                        eye(size(designMatrix,2)), {'tstat','beta','rsquare', 'fstat'});                    
+                    resReg = [resReg; identifier, rs_temp.tstat.pval(2:4)', rs_temp.beta(2:4)'];
+                    
                     
                     % Wilcoxon rank sum/umw
 %                     prs_b = ranksum(slidBC(win,cats==1), slidBC(win,cats==4));%FB vs. FO
@@ -117,6 +127,7 @@ for ch = 1:5,
 end % for channels
 
 %% All output
+output.resReg = resReg;
 output.res2ANOVA = res2ANOVA;
 % output.wrs = resWRS;
 % output.roc_fb = roc_fb;

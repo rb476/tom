@@ -26,10 +26,10 @@ end
 
 % Obtain impulse count and bin it depending on epoch
 bc = alignSpikesToEvent_2(spikeTS, events, stepsize);
-middle = size(bc, 1)/2;
+middle = floor(size(bc, 1)/2);
 
 % Z-score to ca. 1s pre event
-%toi = middle-ceil(1000/stepsize):middle-1;
+% toi = middle-ceil(1000/stepsize):middle-1;
 % mbl = mean(bc(toi,:));
 % sdl = std(bc(toi,:));
 % for i = 1:size(bc,2),
@@ -37,18 +37,18 @@ middle = size(bc, 1)/2;
 % end
 
 % Z-score to first 10 s of recording
-blSpikes = spikeTS<10000;
-if sum(blSpikes)>0,
-    bl_bc = histc(spikeTS(blSpikes),0:stepsize:10000);
-else
-    blSpikes = spikeTS<=spikeTS(1)+10000;    
-    bl_bc = histc(spikeTS(blSpikes), spikeTS(1):stepsize:(spikeTS(1)+10000));
-end
-mbl = mean(bl_bc);
-sbl = mean(bl_bc);
-bc_z = (bc-mbl)/sbl;
-
-bc = bc_z;
+% blSpikes = spikeTS<10000;
+% if sum(blSpikes)>0,
+%     bl_bc = histc(spikeTS(blSpikes),0:stepsize:10000);
+% else
+%     blSpikes = spikeTS<=spikeTS(1)+10000;    
+%     bl_bc = histc(spikeTS(blSpikes), spikeTS(1):stepsize:(spikeTS(1)+10000));
+% end
+% mbl = mean(bl_bc);
+% sbl = mean(bl_bc);
+% bc_z = (bc-mbl)/sbl;
+% 
+% bc = bc_z;
 
 % Obtain impulse bin count for every sliding window 
 slidBC = zeros(theseSlides,size(bc,2));
