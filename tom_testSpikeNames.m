@@ -10,15 +10,13 @@ time = params.time;
 inputsize = params.inputsize;
 stepsize = params.stepsize;
 
-% properNounTime  = data.transcription.End(data.transcription.properNoun>0 & data.transcription.Sentence==1)*1000;
-% youTime         = data.transcription.End(data.transcription.personalNoun==1 & data.transcription.Sentence==1)*1000;
 properNounTime  = data.transcription.Start(data.transcription.properNoun>0 & data.transcription.Sentence==1)*1000;
 youTime         = data.transcription.Start(data.transcription.personalNoun==1 & data.transcription.Sentence==1)*1000;
 
 output.rs = [];
 theseSlides = (sum(time)-inputsize+stepsize)/stepsize;
 
-% Extract neuronal responses
+% Extract neuronal responses, plot SDF, NHST
 for ch = 1:5,
     units = size(data.channel(ch).unit,2);    
     if ~isempty(units),
@@ -80,14 +78,4 @@ end
 % classifier you vs other
 
 % dimensionality reduction
-
-% function local_plotSDF(meanSpikes, xt)
-% c = size(meanSpikes,2);
-% for i = 1:c,
-%     smoothSpk(:,i) = smoothSpikes(meanSpikes(:,i), 7, 'gauss')';    
-% end
-% figure
-% plot(repmat(xt(:),1,c), smoothSpk)
-% set(gca,'tickdir','out','linewidth',0.5,'fontsize',14)
-% box off
 

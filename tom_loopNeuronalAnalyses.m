@@ -1,19 +1,22 @@
 %% Loop each recorded session, perform 2-anova and WRS running window analyses, 
 % append results
 params.time = [3000 3000];
-params.inputsize = 1500;
-params.stepsize = 1500;
+params.inputsize = 1000;
+params.stepsize = 1000;
 
 output.wrs = [];
 output.anova2 = [];
 output.roc = [];
 output.nameswrs = [];
+output.mlr = [];
+
 for i = 1:5,
     if ~isempty(allCases(i))
         for ii = 1:size(allCases(i).session,2),
             sessionoutput = tom_testSpikeActivity(allCases(i).session(ii), [], params);            
+            output.mlr = [output.mlr; sessionoutput.resReg];
 %             output.wrs = [output.wrs; sessionoutput.wrs];
-            output.anova2 = [output.anova2; sessionoutput.res2ANOVA];
+%             output.anova2 = [output.anova2; sessionoutput.res2ANOVA];
 %             output.roc = [output.roc; sessionoutput.roc_fb];
 
 %              out = tom_testSpikeNames(allCases(i).session(ii), params);
@@ -22,7 +25,44 @@ for i = 1:5,
     end
 end
 
+%% Summary tables
+mlrThrP = output.mlr(:,10:12)<0.05;
+mlrThrPclass = zeros(length(output.mlr),1);
+mlrThrPclass(mlrThrP(:,1)==0 & mlrThrP(:,2)==1) = 1;
+mlrThrPclass(mlrThrP(:,1)==1 & mlrThrP(:,2)==0) = 2;
+% mlrThrPclass((mlrThrP(:,1)==1 & mlrThrP(:,2)==1) | mlrThrP(:,3)==1) = 3;
+% mlrThrPclass(mlrThrP(:,1)==1 & mlrThrP(:,2)==1) = 3;
+mlrThrPclass(mlrThrP(:,1)==1) = 3;
 
+
+ts = unique(output.mlr(:,6));
+counter = zeros(length(ts),3,2);
+for i = 1:length(ts),
+    for ii = 1:3,
+        for iii = 1:2,
+            th = mlrThrPclass(output.mlr(:,5)==iii & output.mlr(:,6)==ts(i))==ii;
+            if ~isempty(th),
+                counter(i, ii, iii) = sum(th);
+            end
+        end
+    end
+end
+figure,
+subplot(1,2,1), plot(ts,counter(:,:,1),'linewidth',2),box off, 
+ylabel 'Significant neurons (%)'
+xlabel 'Question offset (s)'
+
+subplot(1,2,2),plot(ts,counter(:,:,2),'linewidth',2),box off
+legend({'Belief','Falsehood','Both'})
+xlabel 'Answer onset (s)'
+
+% % [A,~,nClassID] = unique([output.mlr(:,5:6), mlrThrPclass],'rows');
+% [A,~,nClassID] = unique([output.mlr(:,5:6), mlrThrPclass],'rows');
+% fer = findElementRep(nClassID);
+% % sumTbl = array2table([A, fer(:,2)],'VariableNames',{'Epoch','time','belief','false','n'});
+% 
+% sumTbl = array2table([A, fer(:,2), 100*(fer(:,2)./95)],'VariableNames',{'Epoch','time','class','n','nPer'});
+% sumTbl(sumTbl.class==0,:) = [];
 
 %% Generate a heatmap for each combination of epoch and facotr/comparison
 pThr = 0.05;

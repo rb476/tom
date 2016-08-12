@@ -49,16 +49,49 @@ end
 % Grouping factors
 anovaFactors = [data.belief, data.falsehood];
 cats = data.qCatVec;
+nQ = length(anovaFactors);
+complexity = NaN(nQ,1);
+C = data.PromptLangAnalysisTable.Complexity;
+if iscell(C), C = [C{:}]; end
+complexity(1:2:(length(C)*2)) = C;
+complexity(2:2:(length(C)*2)) = C; 
+
+WC = zeros(nQ,1);
+wc = data.QuestOneLangAnalysisTable.WC;
+if iscell(wc), 
+    WC(1:2:end) = [wc{:}];
+    WC(2:2:end) = [data.QuestTwoLangAnalysisTable.WC{:}]; 
+else
+    WC(1:2:(length(wc)*2)) = wc;
+    WC(2:2:(length(data.QuestTwoLangAnalysisTable.WC)*2)) = data.QuestTwoLangAnalysisTable.WC; 
+end
+
+qOrder = ones(nQ,1);
+qOrder(2:2:end) = 2;
+
 
 % remove NaNs, which are placeholders for planned Q that weren't asked
-c=data.correct;
-notAsked = isnan(c);
+remThese = zeros(length(epochTimes),1);
+remThese(data.correct==0) = 1;
+remThese(isnan(epochTimes(:,1))) = 1;
+remThese = remThese==1;
 
 % Only analyze correct responses (although interesting, behavioural errors 
 %   are ~10%)
-epochTimes(c==0 | notAsked,:)=[];
-anovaFactors(c==0 | notAsked,:)=[];
-cats(c==0 | notAsked) = [];
+if (length(epochTimes)~=length(complexity)) | length(epochTimes)~=length(WC) | length(epochTimes)~=length(qOrder),
+    keyboard
+end
+epochTimes(remThese,:)  =[];
+anovaFactors(remThese,:)= [];
+% cats(remThese)          = [];
+complexity(remThese)    = [];
+WC(remThese)            = [];
+qOrder(remThese)        = [];
+
+% designMatrix = [ones(length(anovaFactors),1), anovaFactors, ...
+%     anovaFactors(:,1).*anovaFactors(:,2)];
+designMatrix = [ones(length(anovaFactors),1), anovaFactors, ...
+    anovaFactors(:,1).*anovaFactors(:,2), complexity, WC, qOrder];
 
 
 for ch = 1:5,
@@ -102,11 +135,11 @@ for ch = 1:5,
                         m', se', n'];
                     
                     % MLR with dummy variables
-                    designMatrix = [ones(length(anovaFactors),1), anovaFactors, ...
-                        anovaFactors(:,1).*anovaFactors(:,2)];
+                    
                     rs_temp = regstats(slidBC(win,:), designMatrix, ...
-                        eye(size(designMatrix,2)), {'tstat','beta','rsquare', 'fstat'});                    
-                    resReg = [resReg; identifier, rs_temp.tstat.pval(2:4)', rs_temp.beta(2:4)'];
+                        eye(size(designMatrix,2)), {'tstat','beta','rsquare', 'fstat'});
+%                     [rho, pval] = partialcorr([slidBC(win,:), designMatrix(:,2:end)],designMatrix(:,2:end));
+                    resReg = [resReg; identifier, rs_temp.tstat.pval(2:end)', rs_temp.beta(2:end)'];
                     
                     
                     % Wilcoxon rank sum/umw
