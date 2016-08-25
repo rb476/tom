@@ -4,7 +4,7 @@ function [slidBC, slidCtr] = tom_slidingBinCount(spikeTS, events, time, inputsiz
 % Obtain impulse bin count for every sliding window in ToM project.
 %
 %   Input: 
-%         spikeTS, vector with unit's spiking time stamps
+%         spikeTS, vector with unit's spiking time stamps ( in ms)
 %         events, vector used to align neuronal data (in ms)
 %         time, start and end of task epoch of interest (both positive, in ms)
 %         inputsize, window size (in ms)
