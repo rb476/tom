@@ -5,14 +5,20 @@ function output = tom_testSpikeActivity(data, typeOfPlot, params)
 %
 % In:
 % 
-% data, 'session data structure'
+%   data, 'session data structure'
 %
-% typeOfPlot = 'fxSz';'pval,'meanFR'
+%   typeOfPlot = 'fxSz';'pval,'meanFR'
 %
-% params.time         = [2000 2000];
-% params.inputsize    = 250;
-% params.stepsize     = 25;
+%   params.time         = [2000 2000];
+%   params.inputsize    = 250;
+%   params.stepsize     = 25;
 % Make stepsize=inputsize to perform 'fixed window analyses'  
+%
+% Out:
+%     output.resReg       = resReg;
+%     output.res2ANOVA    = res2ANOVA;
+%     output.wrs          = resWRS;
+%     output.roc_fb       = roc_fb;
 %
 % See also tom_loopNeuronalAnalyses
 %
@@ -36,10 +42,10 @@ roc_fb = [];
 resReg = [];
 
 % Find Q&A times
-Q = data.transcription.Question==1;
-qTime_off  = data.transcription.End(Q);
-ansTime_on = data.transcription.Start(find(Q)+1);
-epochTimes = round([qTime_off, ansTime_on]*1000); % in ms
+Q           = data.transcription.Question==1;
+qTime_off   = data.transcription.End(Q);
+ansTime_on  = data.transcription.Start(find(Q)+1);
+epochTimes  = round([qTime_off, ansTime_on]*1000); % in ms
 
 if size(epochTimes,1)~=100,
     % use second method,
@@ -48,10 +54,10 @@ end
 
 % Grouping factors
 anovaFactors = [data.belief, data.falsehood];
-cats = data.qCatVec;
-nQ = length(anovaFactors);
-complexity = NaN(nQ,1);
-C = data.PromptLangAnalysisTable.Complexity;
+cats        = data.qCatVec;
+nQ          = length(anovaFactors);
+complexity  = NaN(nQ,1);
+C           = data.PromptLangAnalysisTable.Complexity;
 if iscell(C), C = [C{:}]; end
 complexity(1:2:(length(C)*2)) = C;
 complexity(2:2:(length(C)*2)) = C; 
@@ -71,17 +77,18 @@ qOrder(2:2:end) = 2;
 
 
 % remove NaNs, which are placeholders for planned Q that weren't asked
-remThese = zeros(length(epochTimes),1);
-remThese(data.correct==0) = 1;
-remThese(isnan(epochTimes(:,1))) = 1;
-remThese = remThese==1;
+remThese                            = zeros(length(epochTimes),1);
+remThese(data.correct==0)           = 1;
+remThese(isnan(epochTimes(:,1)))    = 1;
+remThese                            = remThese==1;
 
 % Only analyze correct responses (although interesting, behavioural errors 
 %   are ~10%)
 if (length(epochTimes)~=length(complexity)) | length(epochTimes)~=length(WC) | length(epochTimes)~=length(qOrder),
+    disp 'Something''s not correct with variables length'
     keyboard
 end
-epochTimes(remThese,:)  =[];
+epochTimes(remThese,:)  = [];
 anovaFactors(remThese,:)= [];
 % cats(remThese)          = [];
 complexity(remThese)    = [];
@@ -92,7 +99,6 @@ qOrder(remThese)        = [];
 %     anovaFactors(:,1).*anovaFactors(:,2)];
 designMatrix = [ones(length(anovaFactors),1), anovaFactors, ...
     anovaFactors(:,1).*anovaFactors(:,2), complexity, WC, qOrder];
-
 
 for ch = 1:5,
     units = size(data.channel(ch).unit,2);    
@@ -113,7 +119,7 @@ for ch = 1:5,
                 % repeat for each window
                 for win = 1:theseSlides
                     identifier = [data.case, data.session, ...
-                        ch, unit, epoch, slidCtr(win)/1000];
+                        ch, unit, epoch, slidCtr(win)/1000, inputsize];
 
                     % Perform 2-ANOVA, 
 %                     [P, tbl] = anovan(slidBC(win,:)', anovaFactors, ...
@@ -160,7 +166,10 @@ for ch = 1:5,
 end % for channels
 
 %% All output
-output.resReg = resReg;
+myMlr = array2table(resReg, 'VariableNames',{'Case','Session','channel','unit','epoch','bin_center','bin_size',...
+    'belief_p','falsehood_p','BxF_p','complexity_p','word_count_p','q_order_p',...
+    'belief_b','falsehood_b','BxF_b','complexity_b','word_count_b','q_order_b'});
+output.resReg = myMlr;
 output.res2ANOVA = res2ANOVA;
 % output.wrs = resWRS;
 % output.roc_fb = roc_fb;

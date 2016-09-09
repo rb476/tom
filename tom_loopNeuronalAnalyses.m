@@ -1,8 +1,8 @@
 %% Loop each recorded session, perform 2-anova and WRS running window analyses, 
 % append results
 params.time = [3000 3000];
-params.inputsize = 1000;
-params.stepsize = 1000;
+params.inputsize = 1500;
+params.stepsize = 1500;
 
 output.wrs = [];
 output.anova2 = [];
@@ -13,6 +13,9 @@ output.mlr = [];
 for i = 1:5,
     if ~isempty(allCases(i))
         for ii = 1:size(allCases(i).session,2),
+            if i==5 && ii==2,
+                continue,
+            end
             sessionoutput = tom_testSpikeActivity(allCases(i).session(ii), [], params);            
             output.mlr = [output.mlr; sessionoutput.resReg];
 %             output.wrs = [output.wrs; sessionoutput.wrs];
@@ -26,13 +29,13 @@ for i = 1:5,
 end
 
 %% Summary tables
-mlrThrP = output.mlr(:,10:12)<0.05;
-mlrThrPclass = zeros(length(output.mlr),1);
+mlrThrP                                         = output.mlr(:,10:12)<0.05;
+mlrThrPclass                                    = zeros(length(output.mlr),1);
 mlrThrPclass(mlrThrP(:,1)==0 & mlrThrP(:,2)==1) = 1;
 mlrThrPclass(mlrThrP(:,1)==1 & mlrThrP(:,2)==0) = 2;
 % mlrThrPclass((mlrThrP(:,1)==1 & mlrThrP(:,2)==1) | mlrThrP(:,3)==1) = 3;
 % mlrThrPclass(mlrThrP(:,1)==1 & mlrThrP(:,2)==1) = 3;
-mlrThrPclass(mlrThrP(:,1)==1) = 3;
+mlrThrPclass(mlrThrP(:,1)==1)                   = 3;
 
 
 ts = unique(output.mlr(:,6));
