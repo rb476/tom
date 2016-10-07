@@ -1,5 +1,5 @@
 % tom_writeNewRandomization
-session = 'second'; % {first, second}
+session = 'first'; % {first, second}
 sheetName = 'Randomization X';
 
 % Read Excel file
