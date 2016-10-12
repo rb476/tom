@@ -33,23 +33,25 @@ function newOrder = tom_pseudoRandomization(expConds, requested)
 %      1     0     1     0     0    3];
  
  % Restrict array with the requested number of questions of each type
-[A,~,C] = unique(expConds(:,4:end),'rows');
+[A,~,C] = unique(expConds(:,4:10),'rows');
 ferC = findElementRep(C);
 locConds = [];%NaN(size(expConds));
  for i = 1:size(requested,1)
-     locRand = randperm(ferC(i,2));
-     these = locRand(1:requested(i,end));
-     acThese = expConds(C==i,:);
-     locConds = [locConds; acThese(these,:)]; 
+     locRand = randperm(ferC(i,2)); % random permutation without replacement
+     these = locRand(1:requested(i,end)); % pick the first 'requested' numbers from permutation
+     acThese = expConds(C==i,:); % logical indices of prompts
+     locConds = [locConds; acThese(these,:)]; % select prompts and append to output
  end
 
-% sequence in which the nodes don't follow each other
+% Pseudorandomize order
+[~,~,localC] = unique(locConds(:,4:10), 'rows');
 badSeq = 1;
 counter = 0;
 while badSeq
     counter = counter+1;
-    no = randperm(size(locConds,1));
-    badSeq = sum(diff(locConds(no,1),2)==0)>0;
+    no      = randperm(size(locConds,1));
+    badSeq  = sum(diff(locConds(no,2))==0)>0; % NO same trunk two trials in a row
+    badSeq  = badSeq + sum(diff(localC(no))==0)>0; % NO same question class two trials in a row
 end
 newOrder = locConds(no,:);
 disp(counter)
