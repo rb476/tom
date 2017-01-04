@@ -37,17 +37,12 @@ function newOrder = tom_pseudoRandomization(expConds, requested)
 [A,~,C] = unique(expConds(:,4:8),'rows'); % DBS
 ferC = findElementRep(C);
 locConds = [];%NaN(size(expConds));
-for i = 1:size(requested,1)
-     thisRow = find(findVectorInMatrix(requested(i,1:end-1), A));
-     if ~isempty(thisRow),
-         locRand = randperm(ferC(thisRow,2)); % random permutation without replacement
-         these = locRand(1:requested(i,end)); % pick the first 'requested' numbers from permutation
-         acThese = expConds(C==thisRow,:); % logical indices of prompts
-         locConds = [locConds; acThese(these,:)]; % select prompts and append to output
-     else
-         warning(sprintf('Couldn''t find requested prompt: %s',mat2str(requested(i,1:end-1))))
-     end
-end
+ for i = 1:size(requested,1)
+     locRand = randperm(ferC(i,2)); % random permutation without replacement
+     these = locRand(1:requested(i,end)); % pick the first 'requested' numbers from permutation
+     acThese = expConds(C==i,:); % logical indices of prompts
+     locConds = [locConds; acThese(these,:)]; % select prompts and append to output
+ end
 
 % Pseudorandomize order
 [~,~,localC] = unique(locConds(:,4:8), 'rows');
@@ -63,7 +58,7 @@ newOrder = locConds(no,:);
 disp(counter)
 
 % Append a randomization of which question will be asked first
-questOrder  = RewardSeqGenerator(50, size(newOrder,1))+1;
+questOrder  = RewardSeqGenerator(50, sum(requested(:,end)))+1;
 
 newOrder = [newOrder, questOrder];
 

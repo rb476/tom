@@ -1,28 +1,41 @@
 % tom_writeNewRandomization
-session = 'ecog_second'; % {first, second, ecog_first, ecog_second}
-sheetName = 'Rand 2 comp 1 ';
+session = 'first'; % {first, second, ecog_first, ecog_second}
+sheetName = 'Randomization 14';
 
 % Read Excel file
-% readHere = 'C:\Users\Raymundo\Dropbox\MGH\ToM (Shared)\ToM\prompts list db.xlsx';
-readHere = 'C:\Users\Raymundo\Dropbox\MGH\ToM ECoG\tom ecog prompts db.xlsx';
+readHere = 'C:\Users\Raymundo\Dropbox\MGH\ToM (Shared)\ToM\prompts list db - corrected 2.xlsx';
+% readHere = 'C:\Users\Raymundo\Dropbox\MGH\ToM (Shared)\ToM\prompts list db characterized.xlsx';
+% readHere = 'C:\Users\Raymundo\Dropbox\MGH\ToM ECoG\tom ecog prompts db.xlsx';
 
 [prompts_no, prompts_text, prompts_all] = xlsread(readHere, 'Original');
+prompts = readtable(readHere,'Sheet','Original');
+prompts(isnan(prompts.ID_no),:) = []; % remove NaN rows
 
 % Restriction logicals
-dtbyou = prompts_no(:,3)<=3 & prompts_no(:,8)==1; % Double-true believe with 'you'
-rt = findIndicesInVector(prompts_no(:,1), newOrder(:,1)); % Previously shown...
-easy = prompts_no(:,21)==1 | isnan(prompts_no(:,21));
+dtbyou = prompts.branch_no<=3 & prompts.dbl_true_believe==1; % Double-true believe with 'you' (ECOG)
+easy = prompts.easy_question==1 | isnan(prompts.easy_question);
+if exist('newOrder','var')
+    rt = findIndicesInVector(prompts.ID_no, newOrder(:,1)); % Previously shown...
+end
  
 % Select and pseudorandomize order of prompts and questions
 switch session
     case 'first'
+%         requested = [   
+%              0     0     0     0     1     10
+%              0     1     0     1     0     10
+%              0     1     1     0     0     10
+%              1     0     0     1     0     10
+%              1     0     1     0     0     10];
+        restrictedPrompts_no = prompts_no(easy,:);
         requested = [   
-             0     0     0     0     1     10
-             0     1     0     1     0     10
-             0     1     1     0     0     10
-             1     0     0     1     0     10
-             1     0     1     0     0     10];
-        newOrder = tom_pseudoRandomization(prompts_no, requested);
+                     0     0     0     1     1     5
+                     0     0     1     0     1     5
+                     0     1     0     1     0     10
+                     0     1     1     0     0     10
+                     1     0     0     1     0     10
+                     1     0     1     0     0     10];
+        newOrder = tom_pseudoRandomization(restrictedPrompts_no, requested);
         
     case 'second'
         % restrict selection based on previous prompts, assumed to be
@@ -91,13 +104,13 @@ if strfind(session,'ecog')
     end
 else
     % Without inference
-    rand_prompts(1,[1:8 10:12]) = prompts_text(1,:);
+    rand_prompts(1,[1:8 10:12]) = prompts_text(1,[1:8 20:22]);
     rand_prompts(1,9) = {'Q Order'};
     for i = 1:size(newOrder,1)    
         rand_prompts(i+1,1:9) = num2cell(newOrder(i,1:9));     
-        rand_prompts(i+1,10) = prompts_text(newOrder(i,1)+1,9);
-        rand_prompts(i+1,11) = prompts_text(newOrder(i,1)+1,9+newOrder(i,9));
-        rand_prompts(i+1,12) = prompts_text(newOrder(i,1)+1,12-newOrder(i,9));
+        rand_prompts(i+1,10) = prompts_text(newOrder(i,1)+1,20);
+        rand_prompts(i+1,11) = prompts_text(newOrder(i,1)+1,20+newOrder(i,9));
+        rand_prompts(i+1,12) = prompts_text(newOrder(i,1)+1,23-newOrder(i,9));
     end
 end
 
