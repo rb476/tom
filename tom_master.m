@@ -7,11 +7,11 @@
 % 5. words file: use waveSurfer to transcribe the audio
 
 % File names
-preHeader.case    = 4;
-preHeader.session = 3;
+preHeader.case    = 7;
+preHeader.session = 1;
 
-xls_page = 'Randomization 9'; % This needs to be changed manually
-xls_file = sprintf('prompts list db case %d answers.xlsx', preHeader.case);
+xls_page = 'Session1_corrected'; % This needs to be changed manually
+xls_file = sprintf('prompts list db case %d answers_corrected.xlsx', preHeader.case);
 spk_file = sprintf('neurons case %d session %d',preHeader.case, preHeader.session);
 lfp_file = sprintf('LFP case %d session %d',preHeader.case, preHeader.session);
 if preHeader.case >= 4
@@ -182,14 +182,22 @@ ansTime_off = sort([t6.End(promptStart(2:end)-1); ...
                           
 % Reshape to insert NaNs for questions not asked....
 preHeader.correct(preHeader.correct==2) = NaN(1);
-preHeader.qTime_on = NaN(100,1);
-preHeader.qTime_on(~isnan(preHeader.correct)) = qTime_on;
-preHeader.qTime_off = NaN(100,1);
-preHeader.qTime_off(~isnan(preHeader.correct)) = qTime_off;
-preHeader.ansTime_on = NaN(100,1);
-preHeader.ansTime_on(~isnan(preHeader.correct)) = ansTime_on;
-preHeader.ansTime_off = NaN(100,1);
-preHeader.ansTime_off(~isnan(preHeader.correct)) = ansTime_off;
+% preHeader.qTime_on = NaN(100,1);
+% preHeader.qTime_on(~isnan(preHeader.correct)) = qTime_on;
+% preHeader.qTime_off = NaN(100,1);
+% preHeader.qTime_off(~isnan(preHeader.correct)) = qTime_off;
+% preHeader.ansTime_on = NaN(100,1);
+% preHeader.ansTime_on(~isnan(preHeader.correct)) = ansTime_on;
+% preHeader.ansTime_off = NaN(100,1);
+% preHeader.ansTime_off(~isnan(preHeader.correct)) = ansTime_off;
+preHeader.qTime_on = qTime_on;
+preHeader.qTime_on(isnan(preHeader.correct)) = NaN(1);
+preHeader.qTime_off = qTime_off;
+preHeader.qTime_off(isnan(preHeader.correct)) = NaN(1);
+preHeader.ansTime_off = ansTime_off;
+preHeader.ansTime_off(isnan(preHeader.correct)) = NaN(1);
+preHeader.ansTime_off = ansTime_off;
+preHeader.ansTime_off(isnan(preHeader.correct)) = NaN(1);
 
 %% finish preparing dataset
 tomCase.session = preHeader;

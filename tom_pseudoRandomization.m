@@ -33,8 +33,8 @@ function newOrder = tom_pseudoRandomization(expConds, requested)
 %      1     0     1     0     0    3];
  
  % Restrict array with the requested number of questions of each type
-% [A,~,C] = unique(expConds(:,4:10),'rows'); % ECOG
-[A,~,C] = unique(expConds(:,4:8),'rows'); % DBS
+[A,~,C] = unique(expConds(:,4:10),'rows'); % ECOG
+% [A,~,C] = unique(expConds(:,4:8),'rows'); % DBS
 ferC = findElementRep(C);
 locConds = [];%NaN(size(expConds));
 for i = 1:size(requested,1)

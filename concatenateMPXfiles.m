@@ -1,8 +1,8 @@
-function concatenateMPXfiles(dataToMerge)
+function all_samples = concatenateMPXfiles(dataToMerge)
 % Concatenates neuronal data originally in MPX files. Writes to file that can be
 % imported by offline sorter (spikes) or read in Matlab (spikes/LFP).
 %
-%   concatenateMPXfiles(dataToMerge)
+%   all_samples = concatenateMPXfiles(dataToMerge)
 %
 % In: dataToMerge, string, {spikes,LFP,audio}
 % 
@@ -28,12 +28,13 @@ for i = 1:length(files)
     switch dataToMerge,
         case 'spikes'
             all_samples = [all_samples, [CSPK_01; CSPK_02; CSPK_03; CSPK_04; CSPK_05]];
-%             all_samples = [all_samples, [CSPK_01.Samples; CSPK_02.Samples; CSPK_03.Samples; CSPK_04.Samples; CSPK_05.Samples]];
         case 'LFP'
-%             all_samples = [all_samples, [CLFP_01.Samples; CLFP_02.Samples; CLFP_03.Samples; CLFP_04.Samples; CLFP_05.Samples]];
             all_samples = [all_samples, [CLFP_01; CLFP_02; CLFP_03; CLFP_04; CLFP_05]];
-        case 'audio'
-            all_samples = [all_samples, CECOG_HF_1___01___Array_1___01];
+        case {'audio1','audio'}
+            all_samples = [all_samples, CECOG_HF_1___01___Array_1___01];            
+            fs = CECOG_HF_1___01___Array_1___01_KHz*1000;
+        case 'audio2'
+            all_samples = [all_samples, CECOG_HF_1___02___Array_1___02];
             fs = CECOG_HF_1___01___Array_1___01_KHz*1000;
     end
 end
@@ -61,7 +62,7 @@ switch dataToMerge
         else
             disp('Success concatenating files to RAD file')
          end
-    case 'audio'
+    case {'audio','audio1','audio2'}
         fileName = input('Type in name for audio file, follow the convention "session audio case X session Y.wav":   ');
-        audiowrite(fileName, all_samples, fs);
+        audiowrite(fileName, all_samples, fs, 'BitsPerSample',32);
 end
