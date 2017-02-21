@@ -5,7 +5,8 @@
 % 3. LFP file: use concatenateMPXfiles to generate a file with LFP from all channels.
 % 4. audio file: use concatenateMPXfiles to generate a file with the audio
 % 5. words file: use waveSurfer to transcribe the audio
-
+clc
+clear all
 % File names
 preHeader.case    = 7;
 preHeader.session = 1;
@@ -153,7 +154,14 @@ pid = cumsum(dpqa==-2);
 t6 = horzcat(t5, array2table(pid+1,'VariableNames',{'Prompt'}));
 
 preHeader.transcription = t6;
-
+%% to check if any "?" is missing
+qarray = t6.Prompt(find(t6.Question)); % two questions per prompt 
+valCount = hist(qarray , unique(qarray))';
+qmiss1 = find(valCount == 1);
+qmiss2 = setdiff([1:nTrials],t6.Prompt(find(diff(t6.Sentence)==-1)));
+if ~isempty([qmiss1;qmiss2])
+    display('There is a punctuation problem')
+end
 %% Get main event timings
 Q           = t6.Question==1;
 promptStart = [1; find(diff(t6.Sentence)==-2)+1];
@@ -173,7 +181,7 @@ ansEndFirstQ= find(diff(t6.Sentence)==-1);
 preHeader.prompt_on     = t6.Start(promptStart);
 preHeader.prompt_off    = t6.End(promptEnd);
 
- qTime_on  = sort([t6.Start(promptEnd+1); ...
+qTime_on  = sort([t6.Start(promptEnd+1); ...
                      t6.Start(ansEndFirstQ+1)]);
 qTime_off  = t6.End(Q);
 ansTime_on = t6.Start(find(Q)+1);
